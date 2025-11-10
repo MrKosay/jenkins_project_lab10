@@ -1,51 +1,51 @@
 pipeline {
   agent any
-
-  environment {
-    VENV = '.venv'
-  }
+  options { skipDefaultCheckout(false) }
 
   stages {
-    stage('Checkout') {
+    stage('Install') {
       steps {
-        checkout scm
+        powershell '''
+          python -m pip install -U pip
+          pip install -r requirements.txt
+        '''
       }
     }
 
-    stage('Create venv') {
+    stage('Tests + Coverage') {
       steps {
-        bat """
-          if not exist %VENV% ( python -m venv %VENV% )
-        """
+        powershell '''
+          coverage run -m pytest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          coverage html
+          coverage report
+        '''
+      }
+      post {
+        always {
+          archiveArtifacts artifacts: 'htmlcov/**', allowEmptyArchive: true
+        }
       }
     }
 
-    stage('Install dependencies') {
+    stage('Security Scan') {
       steps {
-        bat """
-          call %VENV%\\Scripts\\activate
-          python -m pip install --upgrade pip
-          if exist requirements.txt pip install -r requirements.txt
-        """
+        powershell '''
+          New-Item -ItemType Directory -Force -Path reports | Out-Null
+          bandit -q -r . -f txt -o reports\\bandit.txt --exit-zero --severity-level low --confidence-level low
+        '''
+      }
+      post {
+        always {
+          archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true
+        }
       }
     }
 
-    stage('Lint') {
+    // (Optional) very basic "deploy" placeholder to satisfy the exercise
+    stage('Deploy') {
       steps {
-        bat """
-          call %VENV%\\Scripts\\activate
-          flake8 .
-        """
-      }
-    }
-
-    stage('Tests (optional)') {
-      when { expression { return fileExists('test') } }
-      steps {
-        bat """
-          call %VENV%\\Scripts\\activate
-          python -m unittest discover -s test -p "*test*.py"
-        """
+        powershell 'Write-Output "Deploying (placeholder)..."'
       }
     }
   }

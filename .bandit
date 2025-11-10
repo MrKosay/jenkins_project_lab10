@@ -1,0 +1,5 @@
+[bandit]
+exclude_dirs = tests, .venv, venv, .git
+# optional: skip specific checks
+# skips = B101,B603
+
