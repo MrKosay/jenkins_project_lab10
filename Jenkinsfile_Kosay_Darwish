@@ -1,47 +1,52 @@
-pipeline
-    { agent
-    any
-    environment
-    { VIRTUAL_ENV='venv'
+pipeline {
+  agent any
+
+  environment {
+    VENV = '.venv'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
     }
-    stages
-    { stage('Setup')
-    {
+
+    stage('Create venv') {
+      steps {
+        bat """
+          if not exist %VENV% ( python -m venv %VENV% )
+        """
+      }
     }
-    steps {
-    script {
+
+    stage('Install dependencies') {
+      steps {
+        bat """
+          call %VENV%\\Scripts\\activate
+          python -m pip install --upgrade pip
+          if exist requirements.txt pip install -r requirements.txt
+        """
+      }
     }
+
+    stage('Lint') {
+      steps {
+        bat """
+          call %VENV%\\Scripts\\activate
+          flake8 .
+        """
+      }
     }
-    if (!fileExists("${env.WORKSPACE}/${VIRTUAL_ENV}"))
-    { sh "python-m venv ${VIRTUAL_ENV}"
+
+    stage('Tests (optional)') {
+      when { expression { return fileExists('test') } }
+      steps {
+        bat """
+          call %VENV%\\Scripts\\activate
+          python -m unittest discover -s test -p "*test*.py"
+        """
+      }
     }
-    sh"source ${VIRTUAL_ENV}/bin/activate&&pip install-r requirements.txt"
-    stage('Lint')
-    { steps {
-    script {
-    sh"source${VIRTUAL_ENV}/bin/activate &&flake8 app.py"
-    }
-    }
-    }
-    stage('Test') {
-    steps {
-    script {
-    sh"source${VIRTUAL_ENV}/bin/activate&&pytest"
-    }
-    }
-    }
-    stage('Deploy')
-    { steps {
-    script {
-    // Deployment logic, e.g., pushing to a remote server
-    echo "Deploying application..."
-    }
-    }
-    }
-    }
-    post {
-    always
-    { cleanWs()
-    }
-    }
-    }
+  }
+}
