@@ -1,3 +1,17 @@
 [run]
 branch = True
 source = .
+
+omit =
+    .venv/*
+    venv/*
+    tests/*
+    test/*
+
+[report]
+show_missing = True
+exclude_lines =
+    if __name__ == "__main__":
+
+# If your pipeline enforces a floor, keep this conservative.
+fail_under = 60

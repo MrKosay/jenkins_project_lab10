@@ -1,0 +1,5 @@
+[flake8]
+exclude = .venv, venv, .git, __pycache__, build, dist
+max-line-length = 120
+# common ignores (optional):
+ignore = E203, W503
