@@ -44,9 +44,22 @@ pipeline {
 
     // (Optional) very basic "deploy" placeholder to satisfy the exercise
     stage('Deploy') {
-      steps {
-        powershell 'Write-Output "Deploying (placeholder)..."'
-      }
+  steps {
+    powershell '''
+      $target = "C:\\deploy\\python-ci-cd"
+      New-Item -ItemType Directory -Force -Path $target | Out-Null
+
+      Copy-Item -Force app.py, requirements.txt $target
+      if (Test-Path htmlcov)   { Copy-Item -Recurse -Force htmlcov  "$target\\htmlcov" }
+      if (Test-Path reports)   { Copy-Item -Recurse -Force reports  "$target\\reports" }
+
+      "Deployed at $(Get-Date)" | Out-File -Encoding utf8 "$target\\DEPLOYED.txt"
+    '''
+  }
+  post {
+    success {
+      archiveArtifacts artifacts: 'C:\\deploy\\python-ci-cd\\DEPLOYED.txt', allowEmptyArchive: true
     }
   }
 }
+
